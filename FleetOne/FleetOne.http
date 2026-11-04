@@ -1,0 +1,6 @@
+@FleetOne_HostAddress = http://localhost:5122
+
+GET {{FleetOne_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
