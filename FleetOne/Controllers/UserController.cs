@@ -1,6 +1,7 @@
 using FleetOne.Data;
+using FleetOne.Dtos;
 using FleetOne.Entities;
-using Microsoft.AspNetCore.Http.HttpResults;
+using FleetOne.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,9 +28,10 @@ public class UserController(ApplicationDbContext dbContext) : ControllerBase
         {
             return NotFound();
         }
+
         return user;
     }
-    
+
     [HttpGet("by-email")]
     public async Task<ActionResult<User>> GetUserByEmail([FromQuery] string email)
     {
@@ -38,6 +40,31 @@ public class UserController(ApplicationDbContext dbContext) : ControllerBase
         {
             return NotFound("User not found");
         }
+
         return user;
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<User>> AddUser([FromBody] CreateUserDto newUser)
+    {
+        var userExists = await dbContext.Users.AnyAsync(u => u.Email == newUser.Email);
+        if (userExists)
+        {
+            return Conflict("User with that email exists");
+        }
+
+        var passwordHash = new PasswordHasherService().HashPassword(newUser.Password);
+        var newUserEntity = new User
+        {
+            FirstName = newUser.Name,
+            LastName = newUser.Surname,
+            Email = newUser.Email,
+            PasswordHash = passwordHash,
+        };
+
+        var createdUser = dbContext.Users.Add(newUserEntity);
+        await dbContext.SaveChangesAsync();
+
+        return Ok(newUserEntity);
     }
 }
