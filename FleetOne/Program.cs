@@ -1,4 +1,6 @@
 using FleetOne.Data;
+using FleetOne.Repositories;
+using FleetOne.Services;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -16,6 +18,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<PasswordHasherService>();
+builder.Services.AddControllers();
 
 var app = builder.Build();
 

@@ -1,70 +1,78 @@
-using FleetOne.Data;
 using FleetOne.Dtos;
 using FleetOne.Entities;
 using FleetOne.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace FleetOne.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class UserController(ApplicationDbContext dbContext) : ControllerBase
+public class UserController(UserService userService) : ControllerBase
 {
     [HttpGet]
-    public async Task<List<User>> Get()
+    public async Task<ActionResult<List<User>>> Get()
     {
-        var users = await dbContext.Users.ToListAsync();
-        return users;
+        var users = await userService.GetAllUsers();
+        return Ok(users);
     }
 
     [HttpGet]
     [Route("{id:guid}")]
     public async Task<ActionResult<User>> GetUserById(Guid id)
     {
-        Console.WriteLine(id);
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.UserId == id);
+        var user = await userService.GetUserById(id);
         if (user is null)
         {
-            return NotFound();
+            return NotFound("No user matching that id found");
         }
 
-        return user;
+        return Ok(user);
     }
 
     [HttpGet("by-email")]
     public async Task<ActionResult<User>> GetUserByEmail([FromQuery] string email)
     {
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+        var user = await userService.GetUserByEmail(email);
         if (user is null)
         {
-            return NotFound("User not found");
+            return NotFound("No user matching that email");
         }
 
-        return user;
+        return Ok(user);
     }
 
     [HttpPost]
     public async Task<ActionResult<User>> AddUser([FromBody] CreateUserDto newUser)
     {
-        var userExists = await dbContext.Users.AnyAsync(u => u.Email == newUser.Email);
-        if (userExists)
+        var user = await userService.GetUserByEmail(newUser.Email);
+        if (user is not null)
         {
             return Conflict("User with that email exists");
         }
 
-        var passwordHash = new PasswordHasherService().HashPassword(newUser.Password);
-        var newUserEntity = new User
-        {
-            FirstName = newUser.Name,
-            LastName = newUser.Surname,
-            Email = newUser.Email,
-            PasswordHash = passwordHash,
-        };
-
-        var createdUser = dbContext.Users.Add(newUserEntity);
-        await dbContext.SaveChangesAsync();
+        var newUserEntity = await userService.AddUser(newUser);
 
         return Ok(newUserEntity);
+    }
+
+    [HttpDelete]
+    [Route("{id:guid}")]
+    public async Task<ActionResult<User>> DeleteUser([FromRoute] Guid id)
+    {
+        try
+        {
+            var deleted = await userService.DeleteAsync(id);
+            if (!deleted)
+            {
+                return NotFound(new { message = "No user matching that id found" });
+            }
+
+            return NoContent();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
     }
 }
