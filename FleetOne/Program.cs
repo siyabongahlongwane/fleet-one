@@ -22,6 +22,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<PasswordHasherService>();
+builder.Services.AddScoped<AuthService>();
 builder.Services.AddControllers();
 
 var app = builder.Build();
